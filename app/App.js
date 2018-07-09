@@ -1,9 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
 import React, { Component } from 'react';
 import {
   TextInput,
@@ -15,8 +9,9 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { sendRequestForJson } from './services/ApiHandler';
+import { sendRequestForJson, sendRequestForXml, determineCurrentLocation } from './services';
 import * as Keychain from 'react-native-keychain';
+import XMLParser from 'react-xml-parser';
 
 //import RSAKey from 'react-native-rsa';
 
@@ -40,46 +35,76 @@ export default class App extends Component<Props> {
   };
 
   componentWillMount() {
-    this.setState({ loading: true });
+    this.setState( { loading: true } );
     this.getSavedCredetials();
+    determineCurrentLocation(
+      position => this.locationSuccessCallback( position ),
+      error => this.errorCallback( error )
+    );
+
+    sendRequestForXml(
+      'https://typo3.jmwd.de',
+      `/index.php?type=5001`,
+      response => this.getAddressesCallBack( response ),
+      error => this.errorCallback( error )
+    );
+
   }
+
+  locationSuccessCallback = (position) => {
+    console.log(position);
+  };
+
+  getAddressesCallBack = ( response ) => {
+    var xml = new XMLParser().parseFromString( response );    // Assume xmlText contains the example XML
+    console.log( xml );
+    let items = xml.getElementsByTagName( 'addressItem' );
+
+    console.log( items[ 0 ].attributes );
+  };
 
   getSavedCredetials = async () => {
     let credentials = await Keychain.getGenericPassword();
 
-    if (credentials !== false) {
-      this.setState({
+    if ( credentials !== false ) {
+      this.setState( {
         loginData: {
           username: credentials.username,
           password: credentials.password
         }
-      });
+      } );
 
       this.doLogin();
     } else {
-      this.setState({ loading: false });
+      this.setState( { loading: false } );
     }
   };
 
   doLogin = () => {
-    this.setState({ loading: true });
+    if ( this.state.loginData.username === "" && this.state.loginData.password === "" ) {
+      Alert.alert( 'Bitte geben Sie Ihre Zugangsdaten ein.' );
+
+      return;
+    }
+
+    this.setState( { loading: true } );
     sendRequestForJson(
       'https://typo3.jmwd.de',
       `/?user=${this.state.loginData.username}&pass=${
         this.state.loginData.password
-      }&logintype=login&pid=3&type=5000`,
-      response => this.loginCallBack(response),
-      error => this.errorCallback(error)
+        }&logintype=login&pid=3&type=5000`,
+      response => this.loginCallBack( response ),
+      error => this.errorCallback( error )
     );
   };
 
   doLogout = () => {
-    this.setState({ loading: true });
+    this.setState( { loading: true } );
     sendRequestForJson(
       'https://typo3.jmwd.de',
       `/?logintype=logout&pid=3&type=5000`,
-      response => this.logoutCallBack(response),
-      error => this.errorCallback(error)
+      response => this.logoutCallBack( response ),
+      error => this.errorCallback( error )
     );
   };
 
@@ -117,10 +142,10 @@ export default class App extends Component<Props> {
   //	);
   //};
   loginCallBack = response => {
-    console.log('LOGIN: ', response);
+    console.log( 'LOGIN: ', response );
 
-    if (typeof response.userid != 'undefined' && response.userid > 0) {
-      this.setState({
+    if ( typeof response.userid != 'undefined' && response.userid > 0 ) {
+      this.setState( {
         userData: {
           userid: response.userid,
           userName: response.username,
@@ -129,24 +154,24 @@ export default class App extends Component<Props> {
           image: response.image
         },
         action: 'dashboard'
-      });
+      } );
 
       Keychain.setGenericPassword(
         this.state.loginData.username,
         this.state.loginData.password
       );
     } else {
-      Alert.alert('Ihre Zugangsdaten sind nicht valide!');
+      Alert.alert( 'Ihre Zugangsdaten sind nicht valide.' );
     }
 
-    this.setState({ loading: false });
+    this.setState( { loading: false } );
   };
 
   logoutCallBack = response => {
-    console.log('LOGOUT: ', response);
+    console.log( 'LOGOUT: ', response );
 
-    if (typeof response.userid === 'undefined') {
-      this.setState({
+    if ( typeof response.userid === 'undefined' ) {
+      this.setState( {
         userData: {
           userid: '',
           userName: '',
@@ -159,44 +184,44 @@ export default class App extends Component<Props> {
           password: ''
         },
         action: 'login'
-      });
+      } );
 
       Keychain.resetGenericPassword();
     }
 
-    this.setState({ loading: false });
+    this.setState( { loading: false } );
   };
 
   errorCallback = error => {
-    console.log('ERROR', error);
-    this.setState({ loading: false });
+    console.log( 'ERROR', error );
+    this.setState( { loading: false } );
   };
 
-  onChangeLoginData(newValue, key) {
+  onChangeLoginData( newValue, key ) {
     let loginData = this.state.loginData;
 
-    this.setState({
+    this.setState( {
       loginData: {
         ...loginData,
-        [key]: newValue
+        [ key ]: newValue
       }
-    });
+    } );
   }
 
   renderLoading = () => {
     return (
-      <View style={[styles.container, styles.horizontal]}>
+      <View style={[ styles.container, styles.horizontal ]}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   };
 
   renderContent = () => {
-    if (this.state.loading === true) {
+    if ( this.state.loading === true ) {
       return this.renderLoading();
     }
 
-    switch (this.state.action) {
+    switch ( this.state.action ) {
       case 'login':
         return (
           <View style={styles.container}>
@@ -208,7 +233,7 @@ export default class App extends Component<Props> {
                 borderColor: 'gray',
                 borderWidth: 1
               }}
-              onChangeText={text => this.onChangeLoginData(text, 'username')}
+              onChangeText={text => this.onChangeLoginData( text, 'username' )}
               value={this.state.loginData.username}
               autoCapitalize="none"
             />
@@ -220,7 +245,7 @@ export default class App extends Component<Props> {
                 borderColor: 'gray',
                 borderWidth: 1
               }}
-              onChangeText={text => this.onChangeLoginData(text, 'password')}
+              onChangeText={text => this.onChangeLoginData( text, 'password' )}
               value={this.state.loginData.password}
               autoCapitalize="none"
               secureTextEntry={true}
@@ -259,7 +284,7 @@ export default class App extends Component<Props> {
   }
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create( {
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -281,4 +306,4 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 5
   }
-});
+} );

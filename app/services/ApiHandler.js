@@ -3,7 +3,7 @@
 import { create } from 'apisauce';
 
 const APPLICATION_TYPE_JSON = 'application/json';
-const APPLICATION_TYPE_HTML = 'text/html';
+const APPLICATION_TYPE_XML = 'application/rss+xml';
 
 /**
  * @param url
@@ -47,13 +47,13 @@ export const sendRequestForJson = async (
   });
 };
 
-export const sendRequestForHtml = async (
+export const sendRequestForXml = async (
   url,
   path,
   successCallback,
   errorCallback
 ) => {
-  let api = createApi(url, APPLICATION_TYPE_HTML);
+  let api = createApi(url, APPLICATION_TYPE_XML);
   api.get(path).then(response => {
     console.log('RESPONSE: ', response);
     if (response.ok === true) {

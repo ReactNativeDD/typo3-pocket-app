@@ -1,8 +1,13 @@
 'use strict';
 
 import GeoLocation from 'react-native-geolocation-service';
-import { GEO_LOCATION_CONFIGURATION, URL_STATICS } from '../statics';
 import { sendRequestForJson } from './ApiHandler';
+
+const GEO_LOCATION_CONFIGURATION = {
+  enableHighAccuracy: true,
+  timeout: 15000,
+  maximumAge: 10000
+};
 
 /**
  * @param url
@@ -22,13 +27,5 @@ export const determineCurrentLocation = async (
       errorCallback(error);
     },
     GEO_LOCATION_CONFIGURATION
-  );
-};
-
-export const determineLocationBySearch = async (searchWord, callback) => {
-  sendRequestForJson(
-    'https://nominatim.openstreetmap.org/',
-    '/search/' + searchWord + '?format=json&limit=1&countrycodes=de',
-    callback
   );
 };
