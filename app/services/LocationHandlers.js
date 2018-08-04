@@ -1,7 +1,6 @@
 'use strict';
 
 import GeoLocation from 'react-native-geolocation-service';
-import { sendRequestForJson } from './ApiHandler';
 
 const GEO_LOCATION_CONFIGURATION = {
   enableHighAccuracy: true,

@@ -1,26 +1,28 @@
 import React, { Component } from 'react';
 import {
-  TextInput,
-  StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  Image,
   Alert,
   ActivityIndicator
 } from 'react-native';
-import { sendRequestForJson, sendRequestForXml, determineCurrentLocation } from './services';
+import { Login, ServiceCenter, Dashboard } from './components';
+import { styles } from './styles';
+import {
+  sendRequestForJson,
+  sendRequestForXml,
+  determineCurrentLocation,
+  getDistance
+} from './services';
 import * as Keychain from 'react-native-keychain';
 import XMLParser from 'react-xml-parser';
-
-//import RSAKey from 'react-native-rsa';
 
 const SERVER_NAME_API = 'typo3';
 
 export default class App extends Component<Props> {
   state = {
     userData: {
-      userid: '',
+      userId: '',
       userName: '',
       name: '',
       email: '',
@@ -31,149 +33,136 @@ export default class App extends Component<Props> {
       password: ''
     },
     action: 'login',
-    loading: false
+    loading: false,
+    serviceCenters: [],
+    location: {}
   };
 
   componentWillMount() {
-    this.setState( { loading: true } );
+    this.setState({ loading: true });
     this.getSavedCredetials();
     determineCurrentLocation(
-      position => this.locationSuccessCallback( position ),
-      error => this.errorCallback( error )
+      position => this.locationSuccessCallback(position),
+      error => this.errorCallback(error)
     );
+  }
+
+  sortByDistanceAsc = array => {
+    return array.sort(function(a, b) {
+      return b.distance > a.distance ? -1 : b.distance < a.distance ? 1 : 0;
+    });
+  };
+
+  locationSuccessCallback = position => {
+    this.setState({
+      location: {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude
+      }
+    });
 
     sendRequestForXml(
       'https://typo3.jmwd.de',
       `/index.php?type=5001`,
-      response => this.getAddressesCallBack( response ),
-      error => this.errorCallback( error )
+      response => this.getAddressesCallBack(response),
+      error => this.errorCallback(error)
     );
-
-  }
-
-  locationSuccessCallback = (position) => {
-    console.log(position);
   };
 
-  getAddressesCallBack = ( response ) => {
-    var xml = new XMLParser().parseFromString( response );    // Assume xmlText contains the example XML
-    console.log( xml );
-    let items = xml.getElementsByTagName( 'addressItem' );
+  getAddressesCallBack = response => {
+    let xml = new XMLParser().parseFromString(response); // Assume xmlText contains the example XML
+    let items = xml.getElementsByTagName('addressItem');
+    let serviceCenters = [];
+    let currentLocation = this.state.location;
 
-    console.log( items[ 0 ].attributes );
+    items.map(function callback(centerXml, index) {
+      serviceCenters[index] = centerXml.attributes;
+      serviceCenters[index].distance = getDistance(
+        currentLocation,
+        serviceCenters[index]
+      );
+    });
+
+    this.setState({ serviceCenters: this.sortByDistanceAsc(serviceCenters) });
   };
 
   getSavedCredetials = async () => {
     let credentials = await Keychain.getGenericPassword();
 
-    if ( credentials !== false ) {
-      this.setState( {
+    if (credentials !== false) {
+      this.setState({
         loginData: {
           username: credentials.username,
           password: credentials.password
         }
-      } );
+      });
 
       this.doLogin();
     } else {
-      this.setState( { loading: false } );
+      this.setState({ loading: false });
     }
   };
 
   doLogin = () => {
-    if ( this.state.loginData.username === "" && this.state.loginData.password === "" ) {
-      Alert.alert( 'Bitte geben Sie Ihre Zugangsdaten ein.' );
+    if (
+      this.state.loginData.username === '' &&
+      this.state.loginData.password === ''
+    ) {
+      Alert.alert('Bitte geben Sie Ihre Zugangsdaten ein.');
 
       return;
     }
 
-    this.setState( { loading: true } );
+    this.setState({ loading: true });
     sendRequestForJson(
       'https://typo3.jmwd.de',
       `/?user=${this.state.loginData.username}&pass=${
         this.state.loginData.password
-        }&logintype=login&pid=3&type=5000`,
-      response => this.loginCallBack( response ),
-      error => this.errorCallback( error )
+      }&logintype=login&pid=3&type=5000`,
+      response => this.loginCallBack(response),
+      error => this.errorCallback(error)
     );
   };
 
   doLogout = () => {
-    this.setState( { loading: true } );
+    this.setState({ loading: true });
     sendRequestForJson(
       'https://typo3.jmwd.de',
       `/?logintype=logout&pid=3&type=5000`,
-      response => this.logoutCallBack( response ),
-      error => this.errorCallback( error )
+      response => this.logoutCallBack(response),
+      error => this.errorCallback(error)
     );
   };
 
-  //rsaKeyCallback = ( response ) => {
-  //	let keyParts = response.split(":");
-  //
-  //	this.setState({
-  //		rsa: {
-  //			publicKey: keyParts[0],
-  //			short: keyParts[1]
-  //		}
-  //	});
-  //
-  //
-  //	let rsa = new RSAKey();
-  //
-  //	console.log('STATE: ', this.state.rsa.publicKey);
-  //
-  //	rsa.setPublicString(JSON.stringify({n: this.state.rsa.publicKey, e: this.state.rsa.short}));
-  //	let originText = 'test123';
-  //
-  //	let encryptedPassword = rsa.encrypt(originText);
-  //
-  //
-  //	//https://typo3.jmwd.de/index.php?user=admin&pass=rsa%3Aebsqx%2B%2BZP1Ya8gTTHJb3GR6vMuYxBXVwKZLlw2ONg04%2F3RKv%2BpaXax7TPCEEr5wcgzP7S8t5ftyP0770%2BJX1YvnULJ5pkSjv34%2FYAOYW2%2FatgmmwM6ruYVZE%2BYOStAGrTbSY3KYquw3l84%2BMnhaDgghULm3TxysP2thC2DYhLXVvTL%2Fve7jKjf2F444GZMuHbViwX%2BFD9412JhTYkSgKVuwJJLv7PnmxtaAYpH0jQOY%2FILhUSQ3IyVCVHFG4rIAAXxLNLCjVCZj%2FacAEL1WhhiZILfXCBuiNMjAj4Cyj1yKW6JanRdH7NXx%2BipG2jJKd9RYgcla5pDbcoLKFLphyCw%3D%3D&logintype=login&pid=3&redirect_url=&tx_felogin_pi1%5Bnoredirect%5D=0
-  //
-  //	console.log('https://typo3.jmwd.de' + '/index.php?id=46&user=admin&pass=' + encryptedPassword + '&logintype=login&pid=3&redirect_url=&tx_felogin_pi1%5Bnoredirect%5D=0', );
-  //
-  //
-  //	sendRequestForHtml(
-  //		'https://typo3.jmwd.de',
-  //		'/index.php?id=46&user=admin&pass=' + encryptedPassword + '&logintype=login&pid=3&redirect_url=&tx_felogin_pi1%5Bnoredirect%5D=0',
-  //		( response ) => this.loginCallBack( response ),
-  //		( error ) => this.errorCallback( error )
-  //	);
-  //};
   loginCallBack = response => {
-    console.log( 'LOGIN: ', response );
-
-    if ( typeof response.userid != 'undefined' && response.userid > 0 ) {
-      this.setState( {
+    if (typeof response.userid != 'undefined' && response.userid > 0) {
+      this.setState({
         userData: {
-          userid: response.userid,
+          userId: response.userid,
           userName: response.username,
           name: response.name,
           email: response.email,
           image: response.image
         },
         action: 'dashboard'
-      } );
+      });
 
       Keychain.setGenericPassword(
         this.state.loginData.username,
         this.state.loginData.password
       );
     } else {
-      Alert.alert( 'Ihre Zugangsdaten sind nicht valide.' );
+      Alert.alert('Ihre Zugangsdaten sind nicht valide.');
     }
 
-    this.setState( { loading: false } );
+    this.setState({ loading: false });
   };
 
   logoutCallBack = response => {
-    console.log( 'LOGOUT: ', response );
-
-    if ( typeof response.userid === 'undefined' ) {
-      this.setState( {
+    if (typeof response.userId === 'undefined') {
+      this.setState({
         userData: {
-          userid: '',
+          userId: '',
           userName: '',
           name: '',
           email: '',
@@ -184,126 +173,104 @@ export default class App extends Component<Props> {
           password: ''
         },
         action: 'login'
-      } );
+      });
 
       Keychain.resetGenericPassword();
     }
 
-    this.setState( { loading: false } );
+    this.setState({ loading: false });
   };
 
   errorCallback = error => {
-    console.log( 'ERROR', error );
-    this.setState( { loading: false } );
+    this.setState({ loading: false });
   };
 
-  onChangeLoginData( newValue, key ) {
+  onChangeLoginData(newValue, key) {
     let loginData = this.state.loginData;
 
-    this.setState( {
+    this.setState({
       loginData: {
         ...loginData,
-        [ key ]: newValue
+        [key]: newValue
       }
-    } );
+    });
   }
 
   renderLoading = () => {
     return (
-      <View style={[ styles.container, styles.horizontal ]}>
+      <View style={[styles.container, styles.horizontal]}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
   };
 
+  showServiceCenter = () => {
+    this.setState({ action: 'serviceCenter' });
+  };
+
+  showDashboard = () => {
+    if (this.state.userData.userId === '') {
+      this.setState({ action: 'login' });
+    } else {
+      this.setState({ action: 'dashboard' });
+    }
+  };
+
+  determinePhoneNumberByUserState = index => {
+    let center = this.state.serviceCenters[index];
+    if (this.state.userData.userId !== '') {
+      return `${center.phone_support} \n (Ihr persönlicher Berater)`;
+    }
+
+    return center.phone_central;
+  };
+
   renderContent = () => {
-    if ( this.state.loading === true ) {
+    if (this.state.loading === true) {
       return this.renderLoading();
     }
 
-    switch ( this.state.action ) {
-      case 'login':
+    switch (this.state.action) {
+      case 'serviceCenter':
         return (
-          <View style={styles.container}>
-            <Text style={styles.welcome}>Login:</Text>
-            <TextInput
-              style={{
-                width: 200,
-                height: 40,
-                borderColor: 'gray',
-                borderWidth: 1
-              }}
-              onChangeText={text => this.onChangeLoginData( text, 'username' )}
-              value={this.state.loginData.username}
-              autoCapitalize="none"
-            />
-            <Text style={styles.instructions}>Passwort:</Text>
-            <TextInput
-              style={{
-                width: 200,
-                height: 40,
-                borderColor: 'gray',
-                borderWidth: 1
-              }}
-              onChangeText={text => this.onChangeLoginData( text, 'password' )}
-              value={this.state.loginData.password}
-              autoCapitalize="none"
-              secureTextEntry={true}
-            />
-            <TouchableOpacity onPress={this.doLogin}>
-              <Text>Login</Text>
-            </TouchableOpacity>
-          </View>
+          <ServiceCenter
+            serviceCenter = {this.state.serviceCenters[0]}
+            determinePhoneNumberByUserState = {(index) => this.determinePhoneNumberByUserState(index)}
+            showDashboard = {this.showDashboard}
+          />
+        );
+      case 'login':
+        console.log(this.doLogin);
+        return (
+          <Login
+            doLogin={this.doLogin}
+            loginData={this.state.loginData}
+            onChangeLoginData={(text, key) => this.onChangeLoginData(text, key)}
+          />
         );
       case 'dashboard':
         return (
-          <View style={styles.container}>
-            <Text style={styles.welcome}>Name: {this.state.userData.name}</Text>
-            <Text style={styles.welcome}>
-              E-Mail: {this.state.userData.email}
-            </Text>
-            <Image
-              source={{ uri: this.state.userData.image }}
-              style={{
-                width: 200,
-                height: 200,
-                borderRadius: 100,
-                borderWidth: 2
-              }}
-            />
-            <TouchableOpacity onPress={this.doLogout}>
-              <Text>Logout</Text>
-            </TouchableOpacity>
-          </View>
+          <Dashboard
+            userData={this.state.userData}
+            doLogout={this.doLogout}
+          />
         );
     }
   };
 
   render() {
-    return <View style={styles.container}>{this.renderContent()}</View>;
+    return (
+      <View style={styles.screen}>
+        <View style={styles.container}>{this.renderContent()}</View>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            onPress={this.showServiceCenter}
+            style={[styles.button, { width: '50%' }]}
+          >
+            <Text style={styles.buttonText}>GESCHÄFTSTELLE</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 }
-
-const styles = StyleSheet.create( {
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF'
-  },
-  horizontal: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 10
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5
-  }
-} );
