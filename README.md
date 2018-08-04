@@ -19,4 +19,4 @@ npm install -g react-native-cli
 ## Create app
 
 ```
-react-native init PropertyFinder
+react-native init AppName
