@@ -1,6 +1,6 @@
 # TYPO3 in a pocket
 
-First experiments with react native
+Example app for talk "TYPO3 in a pocket" at @t3c
 
 ## React native installation 
 
