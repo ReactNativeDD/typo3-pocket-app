@@ -14,10 +14,9 @@ import {
   determineCurrentLocation,
   getDistance
 } from './services';
+import { ApiStatics } from "./statics";
 import * as Keychain from 'react-native-keychain';
 import XMLParser from 'react-xml-parser';
-
-const SERVER_NAME_API = 'typo3';
 
 export default class App extends Component<Props> {
   state = {
@@ -62,8 +61,8 @@ export default class App extends Component<Props> {
     });
 
     sendRequestForXml(
-      'https://typo3.jmwd.de',
-      `/index.php?type=5001`,
+      ApiStatics.apiUrl,
+      ApiStatics.apiPathAddress,
       response => this.getAddressesCallBack(response),
       error => this.errorCallback(error)
     );
@@ -115,10 +114,10 @@ export default class App extends Component<Props> {
 
     this.setState({ loading: true });
     sendRequestForJson(
-      'https://typo3.jmwd.de',
+      ApiStatics.apiUrl,
       `/?user=${this.state.loginData.username}&pass=${
         this.state.loginData.password
-      }&logintype=login&pid=3&type=5000`,
+      }${ApiStatics.apiPathLogin}`,
       response => this.loginCallBack(response),
       error => this.errorCallback(error)
     );
@@ -127,8 +126,8 @@ export default class App extends Component<Props> {
   doLogout = () => {
     this.setState({ loading: true });
     sendRequestForJson(
-      'https://typo3.jmwd.de',
-      `/?logintype=logout&pid=3&type=5000`,
+      ApiStatics.apiUrl,
+      ApiStatics.apiPathLogout,
       response => this.logoutCallBack(response),
       error => this.errorCallback(error)
     );
