@@ -1,7 +1,7 @@
 import wd from 'wd';
 import server from '../__config__/server';
 import capabilities from '../__config__/capabilities';
-import fixtures from '../__config__/fixtures';
+import { fixtures } from '../__config__/fixtures';
 
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 5 * 60 * 1000;
 
