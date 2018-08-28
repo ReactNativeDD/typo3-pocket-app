@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { styles } from '../styles';
 
 const Dashboard = ({userData, doLogout}) => (
-  <View style={styles.container}>
+  <View style={styles.container} accessibilityLabel="dashboardView">
     <Text style={styles.welcome}>Name: {userData.name}</Text>
     <Text style={styles.welcome}>
       E-Mail: {userData.email}

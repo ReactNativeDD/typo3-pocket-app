@@ -38,12 +38,12 @@ export default class App extends Component<Props> {
   };
 
   componentWillMount() {
-    this.setState({ loading: true });
-    this.getSavedCredetials();
-    determineCurrentLocation(
-      position => this.locationSuccessCallback(position),
-      error => this.errorCallback(error)
-    );
+    this.locationSuccessCallback({
+      coords: {
+        latitude: 51.050407,
+        longitude: 13.737262
+      }
+    });
   }
 
   sortByDistanceAsc = array => {
@@ -113,14 +113,23 @@ export default class App extends Component<Props> {
     }
 
     this.setState({ loading: true });
-    sendRequestForJson(
-      ApiStatics.apiUrl,
-      `/?user=${this.state.loginData.username}&pass=${
-        this.state.loginData.password
-      }${ApiStatics.apiPathLogin}`,
-      response => this.loginCallBack(response),
-      error => this.errorCallback(error)
-    );
+
+    if (
+      this.state.loginData.username === 'jan.maennig' &&
+      this.state.loginData.password === 'test123'
+    ) {
+      this.loginCallBack({
+        userid: 1,
+        username: 'jan.maennig',
+        name: 'Jan Männig',
+        email: 'janmaennig@gmail.com',
+        image: 'https://avatars0.githubusercontent.com/u/5433846?s=460&v=4'
+      });
+    } else {
+      this.errorCallback();
+    }
+
+
   };
 
   doLogout = () => {

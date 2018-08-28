@@ -12,6 +12,7 @@ const Login = ({ doLogin, loginData, onChangeLoginData }) => (
         borderColor: 'gray',
         borderWidth: 1
       }}
+      accessibilityLabel="inputUsername"
       onChangeText={text => onChangeLoginData(text, 'username')}
       value={loginData.username}
       autoCapitalize="none"
@@ -24,6 +25,7 @@ const Login = ({ doLogin, loginData, onChangeLoginData }) => (
         borderColor: 'gray',
         borderWidth: 1
       }}
+      accessibilityLabel="inputPassword"
       onChangeText={text => onChangeLoginData(text, 'password')}
       value={loginData.password}
       autoCapitalize="none"
@@ -31,6 +33,7 @@ const Login = ({ doLogin, loginData, onChangeLoginData }) => (
     />
     <TouchableOpacity
       onPress={doLogin}
+      accessibilityLabel="buttonLogin"
       style={[styles.button, { width: 200 }]}
     >
       <Text style={styles.buttonText}>Login</Text>
